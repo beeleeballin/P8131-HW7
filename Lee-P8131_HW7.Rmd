@@ -8,7 +8,9 @@ output: pdf_document
 Load packages 
 ```{r, message=F}
 library(tidyverse)
+library(knitr)
 library(nlme)
+library(lme4)
 ```
 
 Import data
@@ -39,5 +41,59 @@ data %>%
     legend.position = "bottom",
     legend.title = element_blank()
   )
+```
+
+\newpage
+
+b) 
+**Fit and interpret a random intercept model for the different subjects**
+```{r}
+# fit a mixed effect model with random intercepts for different subjects
+lmm1 = lme (frequency ~ gender + attitude, random = ~1 | subject, data = data, method ='ML') 
+
+# covariance matrix for a subject
+rand_eff_var = as.double(VarCorr(lmm1)[1,1])
+res_var = as.double(VarCorr(lmm1)[2,1])
+cov_y =
+  data.frame(
+    cov = c("genderM", "attitudeinf"),
+    genderM = c(rand_eff_var + res_var, rand_eff_var),
+    attitudeinf = c(rand_eff_var, rand_eff_var + res_var)
+  )
+
+kable(cov_y, "simple")
+
+# covariance matrix for the estimates of fixed effects
+kable(vcov(lmm1), "simple")
+# # or alternatively ...
+# lmm1$varFix
+
+# BLUPs for subject-specific intercepts, which are the random effect coefficients
+kable(random.effects(lmm1), "simple")
+
+# residuals. do we show residuals in this way?
+data$frequency-fitted(lmm1)
+```
+
+\newpage
+
+c)
+**Fit a similar random intercept model - but with an interaction term - and compare it with the first model**
+```{r}
+# fit a mixed effect model with random intercepts for different subjects with the first model
+lmm2 = lme (frequency ~ gender * attitude, random = ~1 | subject, data = data, method ='ML') 
+lmm1_lmm2_pval = anova(lmm2,lmm1)[2, 9]
+ifelse(lmm1_lmm2_pval < 0.05, 
+       "Reject the null hypothesis and suggest the new model with the interaction term has a better fit on the data",
+       "Fail to reject the null hypothesis and suggest the inclusion of the interaction term does not improve the model fit")
+```
+
+After comparing the 2 models using the likelihood ratio test, it is concluded that the interaction term for gender and attitude does not create a better fit for modeling pitch, and therefore it is not significantly associated with pitch.
+
+d)
+**Fit and interpret a random intercept model for the different subjects and scenarios**
+```{r}
+lmm3 = lmer(frequency ~ gender + attitude + (1 | subject) + (1 | scenario), data = data, REML = T) 
+VarCorr(lmm3)
 ```
 
