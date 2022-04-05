@@ -8,6 +8,7 @@ output: pdf_document
 Load packages 
 ```{r, message=F}
 library(tidyverse)
+library(nlme)
 ```
 
 Import data
