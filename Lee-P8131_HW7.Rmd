@@ -46,7 +46,7 @@ data %>%
 \newpage
 
 b) 
-**Fit and interpret a random intercept model for the different subjects**
+**Fit and interpret a random intercept model for different subjects**
 
 ```{r}
 # fit a mixed effect model with estimates chosen to optimize the maximum log-likelihood criterion 
@@ -59,7 +59,7 @@ In this random intercept model $Y_{ij} = (\beta_o + b_i) + X_{ij}^T\beta + \epsi
 and its vector of predictors, `genderM` and `attitudeM`, in condition $j$ of a particular subject. \
 $b_i \sim N(0, \sigma^2_b)$ is the random `subject`-specific intercept effect for the $i^{th}$ `frequency`, and \
 $\epsilon_{ij} \sim N(0, \sigma_b)$ is the within-`subject` error at condition $j$ for the $i^{th}$ `frequency`. \
-Note $b_i$ and $\epsilon_{ij}$ are independent, i.e. cov($b_i$, $\epsilon_{ij}$) = 0, cov($\epsilon_{im}$, $\epsilon_{in}$) = 0 \
+Note $b_i$ and $\epsilon_{ij}$ are independent, i.e. cov($b_i$, $\epsilon_{ij}$) = 0, cov($\epsilon_{im}$, $\epsilon_{in}$) = 0.
 
 The covariance matrix for `frequency` $i$ of a subject is derived with equations \
 $cov(Y_{im}, Y_{in}) = cov(b_i+\epsilon_{im}, b_i+\epsilon_{in}) = cov(b_i, b_i) + cov(b_i, \epsilon_{in}) + cov(\epsilon_{im}, b_i) + cov(\epsilon_{im}, \epsilon_{in})$ \
@@ -114,7 +114,7 @@ c)
 lmm2 = lme (frequency ~ gender * attitude, random = ~1 | subject, data = data, method ='ML') 
 
 # compare it with the first model
-lmm1_lmm2_pval = anova(lmm2,lmm1)[2, 9]
+lmm1_lmm2_pval = anova(lmm2, lmm1)[2, 9]
 ifelse(lmm1_lmm2_pval < 0.05, 
        "Reject the null hypothesis and suggest the new model with the interaction term has a better fit on the data",
        "Fail to reject the null hypothesis and suggest the inclusion of the interaction term does not improve the model fit")
@@ -123,26 +123,25 @@ ifelse(lmm1_lmm2_pval < 0.05,
 After comparing the 2 models using the likelihood ratio test, it is concluded that the interaction term for gender and attitude does not create a better fit for modeling pitch, and therefore it is not significantly associated with pitch.
 
 d)
-**Fit and interpret a random intercept model for the different subjects and scenarios**
+**Fit and interpret a random intercept model for different subjects and scenarios**
 ```{r}
 # fit a mixed effect model, again, with estimates chosen to optimize the maximum log-likelihood criterion
 lmm3 = lmer(frequency ~ gender + attitude + (1 | subject) + (1 | scenario), data = data, REML = F)
 ```
 
-As before, the covariance matrix for `frequency` $i$ of a particular subject in a scenario is composed of the marginal variances of each population-shared predictor and the marginal covariances of any two of those predictors.\
+As before, the covariance matrix for `frequency` $i$ of a particular subject in a scenario is composed of the marginal variances of each population-shared predictor and the marginal covariances of any two of those predictors.
 
-
-In this random intercept model $Y_{ij} = (\beta_o + b_{sub, i} + b_{sce, i}) + X_{ij}^T\beta + \epsilon_{ij}$, \
-$Y_{ij}$ and $X_{ij}$ are the estimated $i^{th}$ `frequency` and its vector of predictors, `genderM` and `attitudeM`, \
-in condition $j$ of a particular subject and scenario, \
+In this random intercept model $Y_{ij} = (\beta_o + b_{sub, i} + b_{sce, i}) + X_{ij}^T\beta + \epsilon_{ij}$, $Y_{ij}$ and $X_{ij}$ are the estimated $i^{th}$ `frequency` \
+and its vector of predictors, `genderM` and `attitudeM`, in condition $j$ of a particular subject and scenario. \
 $b_{sub, i} \sim N(0, g_{sub})$ is the random `subject`-specific intercept effect for the $i^{th}$ `frequency`, \
 $b_{sce, i} \sim N(0, g_{sce})$ is the random `scenario`-specific intercept effect for the $i^{th}$ `frequency`, \
 $\epsilon_{ij} \sim N(0, \sigma_b)$ is the within-`subject`-`scenario` error at condition $j$ for the $i^{th}$ `frequency`. \
-Note $b_{sub, i}$, $b_{sce, i}$ and $\epsilon_{ij}$ are independent, i.e. $cov(b_{sub, i}, b_{sce, i}) = 0$. \
+Note $b_{sub, i}$, $b_{sce, i}$ and $\epsilon_{ij}$ are independent, i.e. $cov(b_{sub, i}, b_{sce, i}) = 0$. 
 
 The covariance matrix for `frequency` $i$ of a particular subject and scenario is derived with equations \
 $cov(Y_{im}, Y_{in}) = cov(b_{sub, i}+b_{sce, i}+\epsilon_{im}, b_{sub, i}+b_{sce, i}+\epsilon_{in}) = cov(b_{sub, i}+b_{sce, i}, b_{sub, i}+b_{sce, i})$ \
-$= cov(b_{sub, i}, b_{sub, i}) + cov(b_{sce, i}, b_{sub, i}) + cov(b_{sub, i}, b_{sce, i}) + cov(b_{sce, i}, b_{sce, i}) = Var[b_{sub, i}] + 0 + 0 + Var[b_{sce, i}] = g_{sub}  + g_{sce}$ \
+$= cov(b_{sub, i}, b_{sub, i}) + cov(b_{sce, i}, b_{sub, i}) + cov(b_{sub, i}, b_{sce, i}) + cov(b_{sce, i}, b_{sce, i})$ \
+$= Var[b_{sub, i}] + 0 + 0 + Var[b_{sce, i}] = g_{sub}  + g_{sce}$ \
 for the marginal covariance between `frequency` $i$ pairs under conditions $m$ and $n$, and \
 $Var[Y_{ij}] = Var[b_{sub, i}+b_{sce, i}+\epsilon_{ij}] = Var[b_{sub, i}] + Var[b_{sce, i}] + Var[\epsilon_{ij}] = g_{sub} + g_{sce} + \sigma^2$
 
@@ -152,10 +151,10 @@ cov_obj = as.data.frame(VarCorr(lmm3))
 # obtain the residual variance estimate (sigma^2)
 res_var2 = cov_obj[3,4]
 
-# obtain the subject covariance estimate (sigma^2_b1)
+# obtain the subject covariance estimate (sigma^2_bsub)
 sub_cov = cov_obj[2,4]
 
-# obtain the scenario covariance estimate (sigma^2_b1)
+# obtain the scenario covariance estimate (sigma^2_bsce)
 sce_cov = cov_obj[1,4]
 
 # build a covariance matrix with the covariance and variance estimates
@@ -171,3 +170,9 @@ diag(cov_y2) = sub_cov + sce_cov + res_var2
 kable(cov_y2, "simple")
 ```
 
+Acquire the fixed effect coefficients
+```{r}
+kable(fixed.effects(lmm3), "simple")
+```
+
+The fixed effect `attitude` is a categorical variable, so the coefficient for `attitudeinf` is the relative change in pitch when the attitude switches from polite to informal while adjusting for gender. That is to say, when the attitude is informal, the pitch frequency increases by 20 units for any subject in any scenario. 
