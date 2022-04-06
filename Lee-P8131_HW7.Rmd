@@ -47,31 +47,61 @@ data %>%
 
 b) 
 **Fit and interpret a random intercept model for the different subjects**
-```{r}
-# fit a mixed effect model with random intercepts for different subjects
-lmm1 = lme (frequency ~ gender + attitude, random = ~1 | subject, data = data, method ='ML') 
 
-# covariance matrix for a subject
-rand_eff_var = as.double(VarCorr(lmm1)[1,1])
+```{r}
+# fit a mixed effect model with estimates chosen to optimize the maximum log-likelihood criterion 
+lmm1 = lme (frequency ~ gender + attitude, random = ~1 | subject, data = data, method ='ML')
+```
+
+The covariance matrix for the pitch `frequency` $i$ of a particular subject is composed of the marginal variances of each population-shared predictor as its diagonal, and the marginal covariances of any two of those predictors in their corresponding entries. The diagonals are all equal, and the non-diagonal entries are all equal for a linear mixed effect model.
+
+In this random intercept model $Y_{ij} = (\beta_o + b_i) + X_{ij}^T\beta + \epsilon_{ij}$, $Y_{ij}$ and $X_{ij}$ are the estimated $i^{th}$ `frequency` \
+and its vector of predictors, `genderM` and `attitudeM`, in condition $j$ of a particular subject. \
+$b_i \sim N(0, \sigma^2_b)$ is the random `subject`-specific intercept effect for the $i^{th}$ `frequency`, and \
+$\epsilon_{ij} \sim N(0, \sigma_b)$ is the within-`subject` error at condition $j$ for the $i^{th}$ `frequency`. \
+Note $b_i$ and $\epsilon_{ij}$ are independent, i.e. cov($b_i$, $\epsilon_{ij}$) = 0, cov($\epsilon_{im}$, $\epsilon_{in}$) = 0 \
+
+The covariance matrix for `frequency` $i$ of a subject is derived with equations \
+$cov(Y_{im}, Y_{in}) = cov(b_i+\epsilon_{im}, b_i+\epsilon_{in}) = cov(b_i, b_i) + cov(b_i, \epsilon_{in}) + cov(\epsilon_{im}, b_i) + cov(\epsilon_{im}, \epsilon_{in})$ \
+$= Var[b_i] + 0 + 0 + 0 = \sigma^2_b$\
+for the marginal covariance between `frequency` $i$ pairs under conditions $m$ and $n$ , and \
+$Var[Y_{ij}] = Var[b_i+\epsilon_{ij}] = Var[b_i] + Var[\epsilon_{ij}] =  \sigma^2_b + \sigma^2$
+
+```{r}
+# obtain the random subject-specific covariance estimate (sigma^2_b)
+randeff_cov = as.double(VarCorr(lmm1)[1,1])
+
+# obtain the random population-shared residual variance estimate (sigma^2)
 res_var = as.double(VarCorr(lmm1)[2,1])
+
+# build the covariance matrix for a particular subject with the estimates
+# where the marginal variance for the subject is the sum of the two values 
+pop_pred = c("genderM", "attitudeinf")
 cov_y =
-  data.frame(
-    cov = c("genderM", "attitudeinf"),
-    genderM = c(rand_eff_var + res_var, rand_eff_var),
-    attitudeinf = c(rand_eff_var, rand_eff_var + res_var)
+  matrix(
+    rep(randeff_cov, length(pop_pred)^2),
+    nrow = length(pop_pred),
+    dimnames = list(pop_pred, pop_pred)
   )
+diag(cov_y) = randeff_cov + res_var
 
 kable(cov_y, "simple")
+```
 
-# covariance matrix for the estimates of fixed effects
+The covariance matrix for the fixed effect estimates
+```{r}
 kable(vcov(lmm1), "simple")
 # # or alternatively ...
 # lmm1$varFix
+```
 
-# BLUPs for subject-specific intercepts, which are the random effect coefficients
+BLUPs for subject-specific intercepts, which are the random effect coefficients
+```{r}
 kable(random.effects(lmm1), "simple")
+```
 
-# residuals. do we show residuals in this way?
+Residuals (is there a better way to show the residuals?)
+```{r}
 data$frequency-fitted(lmm1)
 ```
 
@@ -80,8 +110,10 @@ data$frequency-fitted(lmm1)
 c)
 **Fit a similar random intercept model - but with an interaction term - and compare it with the first model**
 ```{r}
-# fit a mixed effect model with random intercepts for different subjects with the first model
+# fit a mixed effect model, also with estimates chosen to optimize the maximum log-likelihood criterion
 lmm2 = lme (frequency ~ gender * attitude, random = ~1 | subject, data = data, method ='ML') 
+
+# compare it with the first model
 lmm1_lmm2_pval = anova(lmm2,lmm1)[2, 9]
 ifelse(lmm1_lmm2_pval < 0.05, 
        "Reject the null hypothesis and suggest the new model with the interaction term has a better fit on the data",
@@ -93,7 +125,49 @@ After comparing the 2 models using the likelihood ratio test, it is concluded th
 d)
 **Fit and interpret a random intercept model for the different subjects and scenarios**
 ```{r}
-lmm3 = lmer(frequency ~ gender + attitude + (1 | subject) + (1 | scenario), data = data, REML = T) 
-VarCorr(lmm3)
+# fit a mixed effect model, again, with estimates chosen to optimize the maximum log-likelihood criterion
+lmm3 = lmer(frequency ~ gender + attitude + (1 | subject) + (1 | scenario), data = data, REML = F)
+```
+
+As before, the covariance matrix for `frequency` $i$ of a particular subject in a scenario is composed of the marginal variances of each population-shared predictor and the marginal covariances of any two of those predictors.\
+
+
+In this random intercept model $Y_{ij} = (\beta_o + b_{sub, i} + b_{sce, i}) + X_{ij}^T\beta + \epsilon_{ij}$, \
+$Y_{ij}$ and $X_{ij}$ are the estimated $i^{th}$ `frequency` and its vector of predictors, `genderM` and `attitudeM`, \
+in condition $j$ of a particular subject and scenario, \
+$b_{sub, i} \sim N(0, g_{sub})$ is the random `subject`-specific intercept effect for the $i^{th}$ `frequency`, \
+$b_{sce, i} \sim N(0, g_{sce})$ is the random `scenario`-specific intercept effect for the $i^{th}$ `frequency`, \
+$\epsilon_{ij} \sim N(0, \sigma_b)$ is the within-`subject`-`scenario` error at condition $j$ for the $i^{th}$ `frequency`. \
+Note $b_{sub, i}$, $b_{sce, i}$ and $\epsilon_{ij}$ are independent, i.e. $cov(b_{sub, i}, b_{sce, i}) = 0$. \
+
+The covariance matrix for `frequency` $i$ of a particular subject and scenario is derived with equations \
+$cov(Y_{im}, Y_{in}) = cov(b_{sub, i}+b_{sce, i}+\epsilon_{im}, b_{sub, i}+b_{sce, i}+\epsilon_{in}) = cov(b_{sub, i}+b_{sce, i}, b_{sub, i}+b_{sce, i})$ \
+$= cov(b_{sub, i}, b_{sub, i}) + cov(b_{sce, i}, b_{sub, i}) + cov(b_{sub, i}, b_{sce, i}) + cov(b_{sce, i}, b_{sce, i}) = Var[b_{sub, i}] + 0 + 0 + Var[b_{sce, i}] = g_{sub}  + g_{sce}$ \
+for the marginal covariance between `frequency` $i$ pairs under conditions $m$ and $n$, and \
+$Var[Y_{ij}] = Var[b_{sub, i}+b_{sce, i}+\epsilon_{ij}] = Var[b_{sub, i}] + Var[b_{sce, i}] + Var[\epsilon_{ij}] = g_{sub} + g_{sce} + \sigma^2$
+
+```{r}
+cov_obj = as.data.frame(VarCorr(lmm3))
+
+# obtain the residual variance estimate (sigma^2)
+res_var2 = cov_obj[3,4]
+
+# obtain the subject covariance estimate (sigma^2_b1)
+sub_cov = cov_obj[2,4]
+
+# obtain the scenario covariance estimate (sigma^2_b1)
+sce_cov = cov_obj[1,4]
+
+# build a covariance matrix with the covariance and variance estimates
+# where the variance for Y is the sum of the two values
+cov_y2 =
+  matrix(
+    rep(sub_cov + sce_cov, length(pop_pred)^2),
+    nrow = length(pop_pred),
+    dimnames = list(pop_pred, pop_pred)
+  )
+diag(cov_y2) = sub_cov + sce_cov + res_var2
+
+kable(cov_y2, "simple")
 ```
 
